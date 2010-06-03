@@ -18,7 +18,7 @@ def page_to_node(page, home, cut):
     #    parent_id = None # ????
     attr = {'soft_root':page.soft_root,
             'auth_required':page.login_required,
-            'reverse_id':page.reverse_id,}
+            'reverse_id':page.get_reverse_id(),}
     if page.pk == home.pk:
         attr['is_home'] = True
     extenders = []
@@ -36,17 +36,17 @@ def page_to_node(page, home, cut):
     if extenders:
         attr['navigation_extenders'] = extenders
     n = NavigationNode(
-        page.get_menu_title(), 
-        page.get_absolute_url(), 
-        page.pk, 
-        parent_id, 
+        page.get_menu_title(),
+        page.get_absolute_url(),
+        page.pk,
+        parent_id,
         attr=attr,
         visible=page.in_navigation,
     )
     return n
 
 class CMSMenu(Menu):
-    
+
     def get_nodes(self, request):
         page_queryset = get_page_queryset(request)
         site = Site.objects.get_current()
@@ -66,12 +66,12 @@ class CMSMenu(Menu):
         for page in pages:
             if not home:
                 home = page
-            
+
             page.home_pk_cache = home.pk
             if first and page.pk != home.pk:
                 home_cut = True
             if (page.parent_id == home.pk or page.parent_id in home_children) and home_cut:
-                page.home_cut_cache = True 
+                page.home_cut_cache = True
                 home_children.append(page.pk)
             if (page.pk == home.pk and home.in_navigation) or page.pk != home.pk:
                 first = False
@@ -100,7 +100,7 @@ class CMSMenu(Menu):
                             break
                 if not ids:
                     break
-        return nodes  
+        return nodes
 menu_pool.register_menu(CMSMenu)
 
 class NavExtender(Modifier):
@@ -136,7 +136,7 @@ class NavExtender(Modifier):
                 for node in nodes:
                     if node.namespace == menu[0]:
                         removed.append(node)
-        if breadcrumb:  
+        if breadcrumb:
             # if breadcrumb and home not in navigation add node
             if breadcrumb and home and not home.visible:
                 home.visible = True
@@ -144,10 +144,10 @@ class NavExtender(Modifier):
                     home.selected = True
                 else:
                     home.selected = False
-        # remove all nodes that are nav_extenders and not assigned 
+        # remove all nodes that are nav_extenders and not assigned
         for node in removed:
             nodes.remove(node)
-        return nodes   
+        return nodes
 menu_pool.register_modifier(NavExtender)
 
 
@@ -162,7 +162,7 @@ class SoftRootCutter(Modifier):
                 selected = node
             if not node.parent:
                 root_nodes.append(node)
-        
+
         if selected:
             if selected.attr.get("soft_root", False):
                 nodes = selected.get_descendants()
@@ -174,20 +174,20 @@ class SoftRootCutter(Modifier):
         else:
             for node in root_nodes:
                 self.find_children(node, nodes)
-        return nodes   
-    
+        return nodes
+
     def find_children(self, node, nodes):
         for n in node.children:
             if n.attr.get("soft_root", False):
                 self.remove_children(n, nodes)
         return nodes
-    
+
     def remove_children(self, node, nodes):
         for n in node.children:
             nodes.remove(n)
             self.remove_children(n, nodes)
         node.children = []
-    
+
     def find_ancestors(self, node, nodes):
         is_root = False
         if node.parent:
@@ -208,5 +208,5 @@ class SoftRootCutter(Modifier):
             if is_root:
                 n.parent = None
         return nodes
-    
+
 menu_pool.register_modifier(SoftRootCutter)

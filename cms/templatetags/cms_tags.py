@@ -169,7 +169,7 @@ class PlaceholderNode(template.Node):
         self.inherit = inherit
 
     def __repr__(self):
-        return "<Placeholder Node: %s>" % self.name
+        return "<Placeholder Node: %s>" % getattr(self, 'name', None)
 
     def render(self, context):
         if not 'request' in context:
